@@ -18,6 +18,7 @@ class MQTTClimateComponent : public mqtt::MQTTComponent {
   bool is_internal() override;
   std::string component_type() const override;
   void setup() override;
+  void dump_config() override;
 
   MQTT_COMPONENT_CUSTOM_TOPIC(current_temperature, state)
   MQTT_COMPONENT_CUSTOM_TOPIC(mode, state)
@@ -30,6 +31,7 @@ class MQTTClimateComponent : public mqtt::MQTTComponent {
   MQTT_COMPONENT_CUSTOM_TOPIC(target_temperature_high, command)
   MQTT_COMPONENT_CUSTOM_TOPIC(away, state)
   MQTT_COMPONENT_CUSTOM_TOPIC(away, command)
+
   MQTT_COMPONENT_CUSTOM_TOPIC(action, state)
   MQTT_COMPONENT_CUSTOM_TOPIC(fan_mode, state)
   MQTT_COMPONENT_CUSTOM_TOPIC(fan_mode, command)
