@@ -203,6 +203,47 @@ void MQTTClimateComponent::setup() {
 
   this->device_->add_on_state_callback([this]() { this->publish_state_(); });
 }
+
+void MQTTClimateComponent::dump_config() {
+  auto traits = this->device_->get_traits();
+
+  ESP_LOGCONFIG(TAG, "MQTT climate '%s':", this->device_->get_name().c_str());
+  LOG_MQTT_COMPONENT(true, true)
+
+  if (traits.get_supports_current_temperature()){
+    ESP_LOGCONFIG(TAG, "  Temperature state Topic: '%s'", this->get_current_temperature_state_topic().c_str());
+  }
+
+  ESP_LOGCONFIG(TAG, "  Mode state Topic: '%s'", this->get_mode_state_topic().c_str());
+  ESP_LOGCONFIG(TAG, "  Mode command Topic: '%s'", this->get_mode_command_topic().c_str());
+
+  if (traits.get_supports_two_point_target_temperature()) {
+    ESP_LOGCONFIG(TAG, "  Temperature low state Topic: '%s'", this->get_target_temperature_low_state_topic().c_str());
+    ESP_LOGCONFIG(TAG, "  Temperature low command Topic: '%s'", this->get_target_temperature_low_command_topic().c_str());
+    ESP_LOGCONFIG(TAG, "  Temperature high state Topic: '%s'", this->get_target_temperature_high_state_topic().c_str());
+    ESP_LOGCONFIG(TAG, "  Temperature high command Topic: '%s'", this->get_target_temperature_high_command_topic().c_str());
+  }
+  else{
+    ESP_LOGCONFIG(TAG, "  Temperature state Topic: '%s'", this->get_target_temperature_state_topic().c_str());
+    ESP_LOGCONFIG(TAG, "  Temperature command Topic: '%s'", this->get_target_temperature_command_topic().c_str());
+  }
+  if (traits.get_supports_away()) {
+    ESP_LOGCONFIG(TAG, "  Away state Topic: '%s'", this->get_away_state_topic().c_str());
+    ESP_LOGCONFIG(TAG, "  Away command Topic: '%s'", this->get_away_command_topic().c_str());
+  }
+  if (traits.get_supports_action()) {
+    ESP_LOGCONFIG(TAG, "  Action state Topic: '%s'", this->get_action_state_topic().c_str());
+  }
+  if (traits.get_supports_fan_modes()) {
+    ESP_LOGCONFIG(TAG, "  Fan mode state Topic: '%s'", this->get_fan_mode_state_topic().c_str());
+    ESP_LOGCONFIG(TAG, "  Fan mode command Topic: '%s'", this->get_fan_mode_command_topic().c_str());
+  }
+  if (traits.get_supports_swing_modes()) {
+    ESP_LOGCONFIG(TAG, "  Fan swing state Topic: '%s'", this->get_swing_mode_state_topic().c_str());
+    ESP_LOGCONFIG(TAG, "  Fan swing command Topic: '%s'", this->get_swing_mode_command_topic().c_str());
+  }
+}
+
 MQTTClimateComponent::MQTTClimateComponent(Climate *device) : device_(device) {}
 bool MQTTClimateComponent::send_initial_state() { return this->publish_state_(); }
 bool MQTTClimateComponent::is_internal() { return this->device_->is_internal(); }
