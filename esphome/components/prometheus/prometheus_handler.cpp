@@ -323,6 +323,10 @@ void PrometheusHandler::climate_type_(AsyncResponseStream *stream) {
 }
 
 void PrometheusHandler::climate_row_(AsyncResponseStream *stream, climate::Climate *obj) {
+  const char *modes_values[6] = {"off", "auto", "cool", "heat", "fan_only", "dry"};
+  const char *action_values[7] = {"off", "", "cooling", "heating", "idle", "drying", "fan"};
+  const char *fan_mode_values[9] = {"on", "off", "auto", "low", "medium", "high", "middle", "focus", "diffuse"};
+  const char *swing_mode_values[4] = {"off", "both", "vertical", "horuzontal"};
   const int8_t accuracy_decimals = obj->get_traits().get_temperature_accuracy_decimals();
 
   if (obj->is_internal())
@@ -341,6 +345,21 @@ void PrometheusHandler::climate_row_(AsyncResponseStream *stream, climate::Clima
     stream->print(F("\"} "));
     stream->print((uint) obj->mode);
     stream->print('\n');
+
+    for (uint8_t i = 0; i < 6; i++) {
+      if (obj->get_traits().supports_mode(climate::ClimateMode(i))) {
+        stream->print(F("esphome_climate_mode{id=\""));
+        stream->print(obj->get_object_id().c_str());
+        stream->print(F("\",name=\""));
+        stream->print(obj->get_name().c_str());
+        stream->print(F("\",mode=\""));
+        stream->print(modes_values[i]);
+        if (obj->mode == climate::ClimateMode(i))
+          stream->print(F("\"} 1\n"));
+        else
+          stream->print(F("\"} 0\n"));
+      }
+    }
 
     if (obj->get_traits().get_supports_current_temperature()) {
       stream->print(F("#TYPE esphome_climate_current_temperature GAUGE\n"));
@@ -387,6 +406,21 @@ void PrometheusHandler::climate_row_(AsyncResponseStream *stream, climate::Clima
       stream->print(F("\"} "));
       stream->print((uint) obj->action);
       stream->print('\n');
+
+      for (uint8_t i = 0; i < 7; i++) {
+        if (i == 1)
+          continue;
+        stream->print(F("esphome_climate_action{id=\""));
+        stream->print(obj->get_object_id().c_str());
+        stream->print(F("\",name=\""));
+        stream->print(obj->get_name().c_str());
+        stream->print(F("\",action=\""));
+        stream->print(action_values[i]);
+        if (obj->action == climate::ClimateAction(i))
+          stream->print(F("\"} 1\n"));
+        else
+          stream->print(F("\"} 0\n"));
+      }
     }
     if (obj->get_traits().get_supports_away()) {
       stream->print(F("#TYPE esphome_climate_away GAUGE\n"));
@@ -412,6 +446,21 @@ void PrometheusHandler::climate_row_(AsyncResponseStream *stream, climate::Clima
       stream->print(F("\"} "));
       stream->print((uint) obj->fan_mode);
       stream->print('\n');
+
+      for (uint8_t i = 0; i < 9; i++) {
+        if (obj->get_traits().supports_fan_mode(climate::ClimateFanMode(i))) {
+          stream->print(F("esphome_climate_fan_mode{id=\""));
+          stream->print(obj->get_object_id().c_str());
+          stream->print(F("\",name=\""));
+          stream->print(obj->get_name().c_str());
+          stream->print(F("\",mode=\""));
+          stream->print(fan_mode_values[i]);
+          if (obj->fan_mode == climate::ClimateFanMode(i))
+            stream->print(F("\"} 1\n"));
+          else
+            stream->print(F("\"} 0\n"));
+        }
+      }
     }
 
     obj->swing_mode = climate::ClimateSwingMode(1);
@@ -424,6 +473,21 @@ void PrometheusHandler::climate_row_(AsyncResponseStream *stream, climate::Clima
       stream->print(F("\"} "));
       stream->print((uint) obj->swing_mode);
       stream->print('\n');
+
+      for (uint8_t i = 0; i < 4; i++) {
+        if (obj->get_traits().supports_swing_mode(climate::ClimateSwingMode(i))) {
+          stream->print(F("esphome_climate_fan_mode{id=\""));
+          stream->print(obj->get_object_id().c_str());
+          stream->print(F("\",name=\""));
+          stream->print(obj->get_name().c_str());
+          stream->print(F("\",mode=\""));
+          stream->print(swing_mode_values[i]);
+          if (obj->swing_mode == climate::ClimateSwingMode(i))
+            stream->print(F("\"} 1\n"));
+          else
+            stream->print(F("\"} 0\n"));
+        }
+      }
     }
   } else {
     // Invalid state
