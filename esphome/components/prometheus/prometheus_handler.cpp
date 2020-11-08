@@ -1,11 +1,13 @@
 #include "prometheus_handler.h"
 #include "esphome/core/application.h"
+#include "esphome/components/climate/climate_mode.h"
+#include "esphome/components/climate/climate_traits.h"
 
 namespace esphome {
 namespace prometheus {
 
 void PrometheusHandler::handleRequest(AsyncWebServerRequest *req) {
-  AsyncResponseStream *stream = req->beginResponseStream("text/plain");
+  AsyncResponseStream *stream = req->beginResponseStream("text/plain", this->buffer_size_);
 
 #ifdef USE_SENSOR
   this->sensor_type_(stream);
@@ -41,6 +43,12 @@ void PrometheusHandler::handleRequest(AsyncWebServerRequest *req) {
   this->switch_type_(stream);
   for (auto *obj : App.get_switches())
     this->switch_row_(stream, obj);
+#endif
+
+#ifdef USE_CLIMATE
+  this->climate_type_(stream);
+  for (auto *obj : App.get_climates())
+    this->climate_row_(stream, obj);
 #endif
 
   req->send(stream);
@@ -305,6 +313,126 @@ void PrometheusHandler::switch_row_(AsyncResponseStream *stream, switch_::Switch
   stream->print(F("\"} "));
   stream->print(obj->state);
   stream->print('\n');
+}
+#endif
+
+#ifdef USE_CLIMATE
+void PrometheusHandler::climate_type_(AsyncResponseStream *stream) {
+  stream->print(F("#TYPE esphome_climate_mode GAUGE\n"));
+  stream->print(F("#TYPE esphome_climate_failed GAUGE\n"));
+}
+
+void PrometheusHandler::climate_row_(AsyncResponseStream *stream, climate::Climate *obj) {
+  const int8_t accuracy_decimals = obj->get_traits().get_temperature_accuracy_decimals();
+
+  if (obj->is_internal())
+    return;
+  if (!isnan(obj->target_temperature)) {
+    stream->print(F("esphome_climate_failed{id=\""));
+    stream->print(obj->get_object_id().c_str());
+    stream->print(F("\",name=\""));
+    stream->print(obj->get_name().c_str());
+    stream->print(F("\"} 0\n"));
+
+    stream->print(F("esphome_climate_mode{id=\""));
+    stream->print(obj->get_object_id().c_str());
+    stream->print(F("\",name=\""));
+    stream->print(obj->get_name().c_str());
+    stream->print(F("\"} "));
+    stream->print((uint) obj->mode);
+    stream->print('\n');
+
+    if (obj->get_traits().get_supports_current_temperature()) {
+      stream->print(F("#TYPE esphome_climate_current_temperature GAUGE\n"));
+      stream->print(F("esphome_climate_current_temperature{id=\""));
+      stream->print(obj->get_object_id().c_str());
+      stream->print(F("\",name=\""));
+      stream->print(obj->get_name().c_str());
+      stream->print(F("\",unit=\"°C\"} "));
+      stream->print(value_accuracy_to_string(obj->current_temperature, accuracy_decimals).c_str());
+      stream->print('\n');
+    }
+    if (obj->get_traits().get_supports_two_point_target_temperature()) {
+      stream->print(F("#TYPE esphome_climate_target_temperature_high GAUGE\n"));
+      stream->print(F("esphome_climate_target_temperature_high{id=\""));
+      stream->print(obj->get_object_id().c_str());
+      stream->print(F("\",name=\""));
+      stream->print(obj->get_name().c_str());
+      stream->print(F("\",unit=\"°C\"} "));
+      stream->print(value_accuracy_to_string(obj->target_temperature_high, accuracy_decimals).c_str());
+      stream->print('\n');
+      stream->print(F("esphome_climate_target_temperature_low{id=\""));
+      stream->print(obj->get_object_id().c_str());
+      stream->print(F("\",name=\""));
+      stream->print(obj->get_name().c_str());
+      stream->print(F("\",unit=\"°C\"} "));
+      stream->print(value_accuracy_to_string(obj->target_temperature_low, accuracy_decimals).c_str());
+      stream->print('\n');
+    } else {
+      stream->print(F("#TYPE esphome_climate_target_temperature GAUGE\n"));
+      stream->print(F("esphome_climate_target_temperature{id=\""));
+      stream->print(obj->get_object_id().c_str());
+      stream->print(F("\",name=\""));
+      stream->print(obj->get_name().c_str());
+      stream->print(F("\",unit=\"°C\"} "));
+      stream->print(value_accuracy_to_string(obj->target_temperature, accuracy_decimals).c_str());
+      stream->print('\n');
+    }
+    if (obj->get_traits().get_supports_action()) {
+      stream->print(F("#TYPE esphome_climate_action GAUGE\n"));
+      stream->print(F("esphome_climate_action{id=\""));
+      stream->print(obj->get_object_id().c_str());
+      stream->print(F("\",name=\""));
+      stream->print(obj->get_name().c_str());
+      stream->print(F("\"} "));
+      stream->print((uint) obj->action);
+      stream->print('\n');
+    }
+    if (obj->get_traits().get_supports_away()) {
+      stream->print(F("#TYPE esphome_climate_away GAUGE\n"));
+      stream->print(F("esphome_climate_away{id=\""));
+      stream->print(obj->get_object_id().c_str());
+      stream->print(F("\",name=\""));
+      stream->print(obj->get_name().c_str());
+      stream->print(F("\"} "));
+      if (obj->away) {
+        stream->print("1\n");
+      } else {
+        stream->print("0\n");
+      }
+    }
+
+    obj->fan_mode = climate::ClimateFanMode(1);
+    if (obj->get_traits().get_supports_fan_modes()) {
+      stream->print(F("#TYPE esphome_climate_fan_mode GAUGE\n"));
+      stream->print(F("esphome_climate_fan_mode{id=\""));
+      stream->print(obj->get_object_id().c_str());
+      stream->print(F("\",name=\""));
+      stream->print(obj->get_name().c_str());
+      stream->print(F("\"} "));
+      stream->print((uint) obj->fan_mode);
+      stream->print('\n');
+    }
+
+    obj->swing_mode = climate::ClimateSwingMode(1);
+    if (obj->get_traits().get_supports_swing_modes()) {
+      stream->print(F("#TYPE esphome_climate_swing_mode GAUGE\n"));
+      stream->print(F("esphome_climate_swing_mode{id=\""));
+      stream->print(obj->get_object_id().c_str());
+      stream->print(F("\",name=\""));
+      stream->print(obj->get_name().c_str());
+      stream->print(F("\"} "));
+      stream->print((uint) obj->swing_mode);
+      stream->print('\n');
+    }
+  } else {
+    // Invalid state
+    stream->print(F("esphome_climate_failed{id=\""));
+    stream->print(obj->get_object_id().c_str());
+    stream->print(F("\",name=\""));
+    stream->print(obj->get_name().c_str());
+    stream->print(F("\"} 1\n"));
+  }
 }
 #endif
 

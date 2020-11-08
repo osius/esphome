@@ -31,6 +31,8 @@ class PrometheusHandler : public AsyncWebHandler, public Component {
     return setup_priority::WIFI - 1.0f;
   }
 
+  void set_buffer_size(uint32_t buffer_size) { this->buffer_size_ = buffer_size; };
+
  protected:
 #ifdef USE_SENSOR
   /// Return the type for prometheus
@@ -74,7 +76,15 @@ class PrometheusHandler : public AsyncWebHandler, public Component {
   void switch_row_(AsyncResponseStream *stream, switch_::Switch *obj);
 #endif
 
+#ifdef USE_CLIMATE
+  /// Return the type for prometheus
+  void climate_type_(AsyncResponseStream *stream);
+  /// Return the switch Values state as prometheus data point
+  void climate_row_(AsyncResponseStream *stream, climate::Climate *obj);
+#endif
+
   web_server_base::WebServerBase *base_;
+  uint32_t buffer_size_{1460};
 };
 
 }  // namespace prometheus
